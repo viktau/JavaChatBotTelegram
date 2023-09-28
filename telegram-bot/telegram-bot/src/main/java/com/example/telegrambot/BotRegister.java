@@ -10,7 +10,7 @@ import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 public class BotRegister {
     private final VacanciesBot vacanciesBot;
 
-    public BotRegister (VacanciesBot vacanciesBot){
+    public BotRegister(VacanciesBot vacanciesBot){
         this.vacanciesBot=vacanciesBot;
     }
  @PostConstruct
