@@ -64,9 +64,6 @@ public class VacanciesBot extends TelegramLongPollingBot {
     @Override
     public String getBotUsername() {  return "vptataurov vacancies bot";}
 
-
-
-
     private void showJuniorVacancies(Update update) throws TelegramApiException {
         SendMessage sendMessage = new SendMessage();
         sendMessage.setText("Please choose vacancy");
