@@ -21,6 +21,58 @@ public class VacanciesBot extends TelegramLongPollingBot {
     @Override
     // головна логіка обробки повідомлень від телеграму
     public void onUpdateReceived(Update update) {
+
+        if ( update.getMessage() != null){
+            handleStartCommand((update));
+        }
+        if (update.getCallbackQuery() != null){
+            String callbackData = update.getCallbackQuery().getData();
+
+        if ("showJuniorVacancies".equals(callbackData)){
+            showJuniorVacancies(update);
+        }
+
+
+
+    }
+
+       // Список кнопок
+
+
+    @Override
+    public String getBotUsername() {
+        return "vptataurov vacancies bot";
+    }
+}
+
+    private void showJuniorVacancies(Update update) throws TelegramApiException {
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setText("Please choose vacancy");
+        Long chatId = update.getCallbackQuery().getMessage().getChatId();
+        sendMessage.setChatId(chatId);
+        sendMessage.setReplyMarkup(getJuniorVacanciesMenu());
+        execute(sendMessage);
+
+    }
+
+    private ReplyKeyboard getJuniorVacanciesMenu() {
+        List<InlineKeyboardButton> row = new ArrayList<>();
+        InlineKeyboardButton maVacancy = new InlineKeyboardButton();
+        maVacancy.setText("Junior Java dev at MA");
+        maVacancy.setCallbackData("vacancyId=1");
+        row.add(maVacancy);
+
+        InlineKeyboardButton googleVacancy = new InlineKeyboardButton();
+        googleVacancy.setText("Junior Java dev at Google");
+        googleVacancy.setCallbackData("vacancyId=2");
+        row.add(googleVacancy);
+
+        InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup(); //повертає клавіатуру
+        keyboard.setKeyboard((List.of(row)));
+        return keyboard;
+    }
+
+    private void handleStartCommand(Update update) {
         String text = update.getMessage().getText();
         System.out.println("event received" + text);
         SendMessage sendMessage = new SendMessage();
@@ -32,34 +84,29 @@ public class VacanciesBot extends TelegramLongPollingBot {
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
-
     }
 
     private ReplyKeyboard getStartMenu() {
-        List<InlineKeyboardButton> row = new ArrayList<>();
-        InlineKeyboardButton junior = new InlineKeyboardButton();
-        junior.setText("Junior");
-        junior.setCallbackData("showJuniorVacancies");
-        row.add(junior);
+            List<InlineKeyboardButton> row = new ArrayList<>();
+            InlineKeyboardButton junior = new InlineKeyboardButton();
+            junior.setText("Junior");
+            junior.setCallbackData("showJuniorVacancies"); //повідомлення від телеграму
+            row.add(junior); // виводимо кнопку в рядок
 
-        InlineKeyboardButton middle = new InlineKeyboardButton();
-        middle.setText("Middle");
-        middle.setCallbackData("showMiddleVacancies");
-        row.add(middle);
+            InlineKeyboardButton middle = new InlineKeyboardButton();
+            middle.setText("Middle");
+            middle.setCallbackData("showMiddleVacancies");
+            row.add(middle);
 
-        InlineKeyboardButton senior = new InlineKeyboardButton();
-        senior.setText("Senior");
-        senior.setCallbackData("showSeniorVacancies");
-        row.add(senior);
+            InlineKeyboardButton senior = new InlineKeyboardButton();
+            senior.setText("Senior");
+            senior.setCallbackData("showSeniorVacancies");
+            row.add(senior);
 
-        InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
-        keyboard.setKeyboard((List.of(row)));
-        return keyboard;
+            InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup(); //повертає клавіатуру
+            keyboard.setKeyboard((List.of(row)));
+            return keyboard;
 
-    }
-
-    @Override
-    public String getBotUsername() {
-        return "vptataurov vacancies bot";
+        }
     }
 }
