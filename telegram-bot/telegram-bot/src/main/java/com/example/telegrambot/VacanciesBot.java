@@ -1,5 +1,8 @@
 package com.example.telegrambot;
 
+import com.example.telegrambot.dto.VacancyDto;
+import com.example.telegrambot.service.VacancyService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -14,6 +17,8 @@ import java.util.List;
 
 @Component
 public class VacanciesBot extends TelegramLongPollingBot {
+    @Autowired
+    private VacancyService vacancyService;
 
     public VacanciesBot() {
         super( "6567178091:AAH_XU6lHjXuTI3HL9EL8OU8gkm-zZ1TN20");
@@ -37,6 +42,7 @@ public class VacanciesBot extends TelegramLongPollingBot {
                     showSeniorVacancies(update);
                 }else if (callbackData.startsWith("vacancyId=")){
                     String id = callbackData.split("=")[1];
+                    System.out.println("ID from callbackData: " + id);
                     showVacancyDescription(id, update);;
                 }
             }
@@ -45,22 +51,34 @@ public class VacanciesBot extends TelegramLongPollingBot {
         }
     }
 
-
-
-
     // Список кнопок
 
     private void showVacancyDescription(String id, Update update) throws TelegramApiException {
         SendMessage sendMessage = new SendMessage();
         sendMessage.setChatId(update.getCallbackQuery().getMessage().getChatId());
-        sendMessage.setText("Vacancy description for vacancy with id" + id);
-        //VacancyDto vacancy = vacancyService.get(id);
-        //String description = vacancy.getShortDescription();
-        //sendMessage.setText(description);
-        //sendMessage.setReplyMarkup(getBackToVacanciesMenu());
+        VacancyDto vacancy = vacancyService.get(id);
+        String description = vacancy.getShortDescription();
+        sendMessage.setText(description);
+        sendMessage.setReplyMarkup(getBackToVacanciesMenu());
         execute(sendMessage);
 
     }
+//Додали ще дві кнопки
+    private ReplyKeyboard getBackToVacanciesMenu() {
+        List<InlineKeyboardButton> row = new ArrayList<>();
+        InlineKeyboardButton backToVacanciesButton = new InlineKeyboardButton();
+        backToVacanciesButton.setText("Back to vacancies");
+        backToVacanciesButton.setCallbackData("backToVacancies");
+        row.add(backToVacanciesButton);
+
+        InlineKeyboardButton backToStartMenuButton = new InlineKeyboardButton();
+        backToStartMenuButton.setText("Back to start menu");
+        backToStartMenuButton.setCallbackData("backToStartMenu");
+        row.add(backToStartMenuButton);
+
+        return new InlineKeyboardMarkup(List.of(row));
+    }
+
     @Override
     public String getBotUsername() {  return "vptataurov vacancies bot";}
 
@@ -76,16 +94,14 @@ public class VacanciesBot extends TelegramLongPollingBot {
 
     private ReplyKeyboard getJuniorVacanciesMenu() {
         List<InlineKeyboardButton> row = new ArrayList<>();
-        InlineKeyboardButton maVacancy = new InlineKeyboardButton();
-        maVacancy.setText("Junior Java dev at MA");
-        maVacancy.setCallbackData("vacancyId=1");
-        row.add(maVacancy);
 
-        InlineKeyboardButton googleVacancy = new InlineKeyboardButton();
-        googleVacancy.setText("Junior Java dev at Google");
-        googleVacancy.setCallbackData("vacancyId=2");
-        row.add(googleVacancy);
-
+        List<VacancyDto> vacancies = vacancyService.getJuniorVacancies();
+        for (VacancyDto vacancy : vacancies) {
+            InlineKeyboardButton vacancyButton = new InlineKeyboardButton();
+            vacancyButton.setText(vacancy.getTitle());
+            vacancyButton.setCallbackData("vacancyId=" + vacancy.getId());
+            row.add(vacancyButton);
+        }
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup(); //повертає клавіатуру
         keyboard.setKeyboard((List.of(row)));
         return keyboard;
