@@ -12,13 +12,17 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.nio.MappedByteBuffer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Component
 public class VacanciesBot extends TelegramLongPollingBot {
     @Autowired
     private VacancyService vacancyService;
+    private final Map<Long, String> lastShowVacancyLevel = new HashMap<>();
 
     public VacanciesBot() {
         super( "6567178091:AAH_XU6lHjXuTI3HL9EL8OU8gkm-zZ1TN20");
@@ -42,12 +46,39 @@ public class VacanciesBot extends TelegramLongPollingBot {
                     showSeniorVacancies(update);
                 }else if (callbackData.startsWith("vacancyId=")){
                     String id = callbackData.split("=")[1];
-                    System.out.println("ID from callbackData: " + id);
+                    //System.out.println("ID from callbackData: " + id);
                     showVacancyDescription(id, update);;
+                }else if ("backToVacancies".equals(callbackData)){
+                    handleBackToVacanciesCommand(update);
+
+                } else if ("backToStartMenu".equals(callbackData)){
+                    handleBackToStartCommand(update);
+
                 }
             }
         } catch (TelegramApiException e) {
             e.printStackTrace();
+        }
+    }
+
+    private void handleBackToStartCommand(Update update) throws TelegramApiException {
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setText("Choose your title");
+        sendMessage.setChatId(update.getCallbackQuery().getMessage().getChatId());
+        sendMessage.setReplyMarkup(getStartMenu());
+        execute(sendMessage);
+
+    }
+
+    private void handleBackToVacanciesCommand(Update update) throws TelegramApiException {
+        Long chatId = update.getCallbackQuery().getMessage().getChatId();
+        String level = lastShowVacancyLevel.get(chatId);
+        if ("junior".equals(level)){
+            showJuniorVacancies(update);
+        }else if("middle".equals(level)){
+            showMiddleVacancies(update);
+        }else if (("senior".equals(level))){
+            showSeniorVacancies(update);
         }
     }
 
@@ -90,22 +121,16 @@ public class VacanciesBot extends TelegramLongPollingBot {
         sendMessage.setReplyMarkup(getJuniorVacanciesMenu());
         execute(sendMessage);
 
+        lastShowVacancyLevel.put(chatId, "junior");
+
+
     }
 
     private ReplyKeyboard getJuniorVacanciesMenu() {
-        List<InlineKeyboardButton> row = new ArrayList<>();
-
         List<VacancyDto> vacancies = vacancyService.getJuniorVacancies();
-        for (VacancyDto vacancy : vacancies) {
-            InlineKeyboardButton vacancyButton = new InlineKeyboardButton();
-            vacancyButton.setText(vacancy.getTitle());
-            vacancyButton.setCallbackData("vacancyId=" + vacancy.getId());
-            row.add(vacancyButton);
+        return getVacanciesMenu(vacancies);
+
         }
-        InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup(); //повертає клавіатуру
-        keyboard.setKeyboard((List.of(row)));
-        return keyboard;
-    }
 
     private void showMiddleVacancies(Update update) throws TelegramApiException {
         SendMessage sendMessage = new SendMessage();
@@ -114,48 +139,42 @@ public class VacanciesBot extends TelegramLongPollingBot {
         sendMessage.setChatId(chatId);
         sendMessage.setReplyMarkup(getMiddleVacanciesMenu());
         execute(sendMessage);
+
+        lastShowVacancyLevel.put(chatId, "middle");
     }
     private ReplyKeyboard getMiddleVacanciesMenu() {
-        List<InlineKeyboardButton> row = new ArrayList<>();
-        InlineKeyboardButton maVacancy = new InlineKeyboardButton();
-        maVacancy.setText("Middle Java dev at MA");
-        maVacancy.setCallbackData("vacancyId=3");
-        row.add(maVacancy);
-
-        InlineKeyboardButton googleVacancy = new InlineKeyboardButton();
-        googleVacancy.setText("Middle Java dev at Google");
-        googleVacancy.setCallbackData("vacancyId=4");
-        row.add(googleVacancy);
-
-        InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup(); //повертає клавіатуру
-        keyboard.setKeyboard((List.of(row)));
-        return keyboard;
+        List<VacancyDto> vacancies = vacancyService.getMiddleVacancies();
+        return getVacanciesMenu(vacancies);
         }
-        private void showSeniorVacancies(Update update) throws TelegramApiException {
-            SendMessage sendMessage = new SendMessage();
-            sendMessage.setText("Please choose vacancy");
-            Long chatId = update.getCallbackQuery().getMessage().getChatId();
-            sendMessage.setChatId(chatId);
-            sendMessage.setReplyMarkup(getSeniorVacanciesMenu());
-            execute(sendMessage);
+
+    private void showSeniorVacancies(Update update) throws TelegramApiException {
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setText("Please choose vacancy");
+        Long chatId = update.getCallbackQuery().getMessage().getChatId();
+        sendMessage.setChatId(chatId);
+        sendMessage.setReplyMarkup(getSeniorVacanciesMenu());
+        execute(sendMessage);
+
+        lastShowVacancyLevel.put(chatId, "senior");
         }
     private ReplyKeyboard getSeniorVacanciesMenu() {
-        List<InlineKeyboardButton> row = new ArrayList<>();
-        InlineKeyboardButton maVacancy = new InlineKeyboardButton();
-        maVacancy.setText("Senior Java dev at MA");
-        maVacancy.setCallbackData("vacancyId=5");
-        row.add(maVacancy);
-
-        InlineKeyboardButton googleVacancy = new InlineKeyboardButton();
-        googleVacancy.setText("Senior Java dev at Google");
-        googleVacancy.setCallbackData("vacancyId=6");
-        row.add(googleVacancy);
-
-        InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup(); //повертає клавіатуру
-        keyboard.setKeyboard((List.of(row)));
-        return keyboard;
+        List<VacancyDto> vacancies = vacancyService.getSeniorVacancies();
+        return getVacanciesMenu(vacancies);
        }
+ private ReplyKeyboard getVacanciesMenu(List<VacancyDto> vacancies){
+     List<InlineKeyboardButton> row = new ArrayList<>();
 
+
+     for (VacancyDto vacancy : vacancies) {
+         InlineKeyboardButton vacancyButton = new InlineKeyboardButton();
+         vacancyButton.setText(vacancy.getTitle());
+         vacancyButton.setCallbackData("vacancyId=" + vacancy.getId());
+         row.add(vacancyButton);
+     }
+     InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup(); //повертає клавіатуру
+     keyboard.setKeyboard((List.of(row)));
+     return keyboard;
+ }
 
     private void handleStartCommand(Update update) {
         String text = update.getMessage().getText();
