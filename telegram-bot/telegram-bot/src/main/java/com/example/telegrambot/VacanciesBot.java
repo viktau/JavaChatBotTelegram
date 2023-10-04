@@ -5,6 +5,7 @@ import com.example.telegrambot.service.VacancyService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.ParseMode;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
@@ -85,13 +86,51 @@ public class VacanciesBot extends TelegramLongPollingBot {
     // Список кнопок
 
     private void showVacancyDescription(String id, Update update) throws TelegramApiException {
+        VacancyDto vacancyDto = vacancyService.get(id);
         SendMessage sendMessage = new SendMessage();
         sendMessage.setChatId(update.getCallbackQuery().getMessage().getChatId());
-        VacancyDto vacancy = vacancyService.get(id);
-        String description = vacancy.getShortDescription();
-        sendMessage.setText(description);
+        String vacancyInfo = """
+        *Title:* %s
+        *Company:* %s
+        *Short Description:* %s
+        *Long Description:* %s
+        *Salary:* %s
+        *Linl:* [%s](%s)
+        """
+                .formatted(escapeMarkdownReservedChars(vacancyDto.getTitle()),
+                escapeMarkdownReservedChars(vacancyDto.getCompany()),
+                escapeMarkdownReservedChars(vacancyDto.getShortDescription()),
+                escapeMarkdownReservedChars(vacancyDto.getLongDescription()),
+                vacancyDto.getSalary().isBlank() ? "Not specified" : escapeMarkdownReservedChars(vacancyDto.getSalary()),
+                "Click here for more details", escapeMarkdownReservedChars(vacancyDto.getLink()));
+
+        //String description = vacancy.getShortDescription();
+        //sendMessage.setText(description);
+        sendMessage.setText(vacancyInfo);
+        sendMessage.setParseMode(ParseMode.MARKDOWNV2);
         sendMessage.setReplyMarkup(getBackToVacanciesMenu());
         execute(sendMessage);
+
+    }
+    private String escapeMarkdownReservedChars(String text){
+        return text.replace("-","\\-" )
+                .replace("_", "\\_")
+                .replace("*","\\*")
+                .replace("[","\\[")
+                .replace("]","\\]")
+                .replace("{","\\{")
+                .replace("}","\\}")
+                .replace("(","\\(")
+                .replace(")","\\)")
+                .replace("~","\\~")
+                .replace("`","\\`")
+                .replace("<","\\<")
+                .replace(">","\\>")
+                .replace("#","\\#")
+                .replace("+","\\+")
+                .replace("!","\\!")
+                .replace(".","\\.")
+                .replace(",","\\,");
 
     }
 //Додали ще дві кнопки
